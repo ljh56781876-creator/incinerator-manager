@@ -1,0 +1,18 @@
+{
+  "name": "소각로 운영관리",
+  "short_name": "소각로 관리",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f2f5f9",
+  "theme_color": "#142b4b",
+  "lang": "ko",
+  "description": "1~4호기 일정·가동·보수 이력 관리",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

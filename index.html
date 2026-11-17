@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#142b4b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="소각로 관리">
+<link rel="manifest" href="manifest.webmanifest">
+<title>소각로 운영관리</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172b4d;background:#f2f5f9}
+*{box-sizing:border-box}body{margin:0;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+header{background:#142b4b;color:#fff;padding:calc(17px + env(safe-area-inset-top)) 18px 18px;position:sticky;top:0;z-index:3}
+h1{font-size:21px;margin:0}.sub{font-size:12px;opacity:.75;margin-top:4px}
+main{max-width:780px;margin:auto;padding:14px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;position:sticky;top:76px;background:#f2f5f9;padding:5px 0 12px;z-index:2}
+.tab{border:0;border-radius:10px;padding:12px 4px;background:#e1e8f1;color:#30435d;font-weight:700;font-size:13px}
+.tab.active{background:#142b4b;color:white}
+.panel{background:white;border:1px solid #e0e6ee;border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:0 3px 12px #14213d08}
+h2{font-size:17px;margin:0 0 12px}.hint{font-size:12px;color:#718096;margin:-5px 0 12px}
+form{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+label{font-size:12px;font-weight:700;color:#46566d;display:flex;flex-direction:column;gap:5px}
+input,select,textarea{width:100%;min-width:0;border:1px solid #cbd5e1;border-radius:9px;padding:11px;font:inherit;font-size:15px;background:white;color:#172b4d}
+textarea{min-height:76px;resize:vertical}.wide{grid-column:1/-1}
+button{border:0;border-radius:9px;padding:11px 13px;background:#2457a6;color:#fff;font-weight:700;font-size:14px}
+button.secondary{background:#e9eef5;color:#30435d}button.danger{background:#fff0f0;color:#a22}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.records{display:grid;gap:9px;margin-top:12px}
+.item{border:1px solid #e0e6ee;border-radius:11px;padding:12px;display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
+.item.done .name{text-decoration:line-through;color:#8793a4}
+.itemmain{min-width:0;flex:1}.name{font-weight:750;overflow-wrap:anywhere}.meta{font-size:11px;color:#718096;margin-top:5px}.memo{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:7px;color:#45566d}
+.itemactions{display:flex;gap:6px;flex-shrink:0}.itemactions button{padding:8px 9px;font-size:12px}
+.empty{text-align:center;padding:22px;color:#8793a4;border:1px dashed #d5dde7;border-radius:10px;font-size:13px}
+.filter{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.status{font-size:12px;color:#53657d;min-height:18px;margin:10px 2px}
+.tools{display:flex;gap:8px;flex-wrap:wrap}.tools input{display:none}
+small{color:#7b8797;line-height:1.5}
+@media(max-width:420px){main{padding:10px}.panel{padding:12px}.tabs{top:72px}.tab{font-size:12px}.item{flex-direction:column}.itemactions{align-self:flex-end}form{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style>
+</head>
+<body>
+<header><h1>소각로 운영관리</h1><div class="sub">1~4호기 업무 · 가동 이력 · 보수 이력</div></header>
+<main>
+<nav class="tabs">
+<button class="tab active" data-tab="tasks">일정·업무</button>
+<button class="tab" data-tab="ops">가동 이력</button>
+<button class="tab" data-tab="maint">보수 이력</button>
+</nav>
+<section id="tasks" class="view">
+<div class="panel">
+<h2>업무 등록</h2>
+<form id="taskForm">
+<label>날짜<input id="tDate" type="date" required></label>
+<label>호기<select id="tUnit"><option>전체</option><option>1호기</option><option>2호기</option><option>3호기</option><option>4호기</option></select></label>
+<label>분류<select id="tCat"><option>일반업무</option><option>점검</option><option>정비</option><option>안전</option><option>행정</option></select></label>
+<label class="wide">업무명<input id="tTitle" maxlength="200" placeholder="예: 3호기 백필터 차압 확인" required></label>
+<label class="wide">메모<textarea id="tMemo" placeholder="작업 내용 및 전달사항"></textarea></label>
+<div class="wide"><button type="submit">업무 등록</button></div>
+</form>
+</div>
+<div class="panel">
+<h2>업무 목록</h2>
+<div class="filter">
+<label>호기<select id="tFilter"><option value="all">전체 호기</option><option>전체</option><option>1호기</option><option>2호기</option><option>3호기</option><option>4호기</option></select></label>
+<label>날짜<input id="tFilterDate" type="date"></label>
+</div>
+<div id="taskList" class="records"></div>
+</div>
+</section>
+<section id="ops" class="view" hidden>
+<div class="panel">
+<h2>가동정지·재가동 등록</h2>
+<form id="opForm">
+<label>호기<select id="oUnit"><option>1호기</option><option>2호기</option><option>3호기</option><option>4호기</option></select></label>
+<label>구분<select id="oType"><option>가동정지</option><option>재가동</option></select></label>
+<label class="wide">일시<input id="oDate" type="datetime-local" required></label>
+<label class="wide">사유<textarea id="oReason" placeholder="정지 또는 재가동 사유"></textarea></label>
+<div class="wide"><button type="submit">이력 등록</button></div>
+</form>
+</div>
+<div class="panel"><h2>가동 이력 목록</h2><div id="opList" class="records"></div></div>
+</section>
+<section id="maint" class="view" hidden>
+<div class="panel">
+<h2>보수내역 등록</h2>
+<form id="mForm">
+<label>작업일<input id="mDate" type="date" required></label>
+<label>호기<select id="mUnit"><option>1호기</option><option>2호기</option><option>3호기</option><option>4호기</option></select></label>
+<label>구분<select id="mCat"><option>기계</option><option>전기</option><option>계장</option><option>내화물</option><option>보일러</option><option>환경설비</option><option>기타</option></select></label>
+<label>설비명<input id="mEquip" placeholder="예: 화격자 구동부"></label>
+<label class="wide">보수 제목<input id="mTitle" maxlength="200" required></label>
+<label class="wide">상세 내용<textarea id="mDetails" placeholder="작업 내용, 교체 자재, 특이사항"></textarea></label>
+<div class="wide"><button type="submit">보수내역 등록</button></div>
+</form>
+</div>
+<div class="panel"><h2>보수 이력 목록</h2><div id="mList" class="records"></div></div>
+</section>
+<div class="panel">
+<h2>자료 백업·복원</h2>
+<p class="hint">현재 이 기기의 브라우저에 저장됩니다. 기기 변경 전 백업 파일을 보관하세요.</p>
+<div class="tools">
+<button id="exportBtn" class="secondary">백업 파일 저장</button>
+<button id="importBtn" class="secondary">백업 파일 불러오기</button>
+<input id="importFile" type="file" accept="application/json">
+</div>
+<div id="status" class="status" aria-live="polite"></div>
+<small>현재 버전은 기기 내부 저장 방식입니다. PC와 자동 동기화하려면 클라우드 연결 및 웹 주소 배포 설정이 추가로 필요합니다.</small>
+</div>
+</main>
+<script>
+(()=> {
+const KEY='incinerator-manager-local-v1';
+const $=id=>document.getElementById(id);
+const today=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+const dt=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)};
+let db=JSON.parse(localStorage.getItem(KEY)||'{"tasks":[],"ops":[],"maint":[]}');
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(db));};
+const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const say=s=>$('status').textContent=s;
+$('tDate').value=today();$('tFilterDate').value=today();$('mDate').value=today();$('oDate').value=dt();
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));
+ document.querySelectorAll('.view').forEach(x=>x.hidden=x.id!==b.dataset.tab);
+}));
+function renderTasks(){
+ const unit=$('tFilter').value,date=$('tFilterDate').value;
+ const rows=db.tasks.filter(x=>(unit==='all'||x.unit===unit)&&(!date||x.date===date)).sort((a,b)=>b.date.localeCompare(a.date));
+ $('taskList').innerHTML=rows.length?rows.map(x=>`<article class="item ${x.done?'done':''}"><div class="itemmain"><div class="name">${esc(x.title)}</div><div class="meta">${esc(x.date)} · ${esc(x.unit)} · ${esc(x.cat)}</div>${x.memo?`<div class="memo">${esc(x.memo)}</div>`:''}</div><div class="itemactions"><button class="secondary" data-done="${x.id}">${x.done?'취소':'완료'}</button><button class="danger" data-del-task="${x.id}">삭제</button></div></article>`).join(''):'<div class="empty">등록된 업무가 없습니다.</div>';
+}
+function renderOps(){
+ const rows=[...db.ops].sort((a,b)=>b.date.localeCompare(a.date));
+ $('opList').innerHTML=rows.length?rows.map(x=>`<article class="item"><div class="itemmain"><div class="name">${esc(x.unit)} · ${esc(x.type)}</div><div class="meta">${esc(x.date.replace('T',' '))}</div>${x.reason?`<div class="memo">${esc(x.reason)}</div>`:''}</div><div class="itemactions"><button class="danger" data-del-op="${x.id}">삭제</button></div></article>`).join(''):'<div class="empty">등록된 가동 이력이 없습니다.</div>';
+}
+function renderMaint(){
+ const rows=[...db.maint].sort((a,b)=>b.date.localeCompare(a.date));
+ $('mList').innerHTML=rows.length?rows.map(x=>`<article class="item"><div class="itemmain"><div class="name">${esc(x.title)}</div><div class="meta">${esc(x.date)} · ${esc(x.unit)} · ${esc(x.cat)} · ${esc(x.equip)}</div>${x.details?`<div class="memo">${esc(x.details)}</div>`:''}</div><div class="itemactions"><button class="danger" data-del-maint="${x.id}">삭제</button></div></article>`).join(''):'<div class="empty">등록된 보수내역이 없습니다.</div>';
+}
+$('taskForm').addEventListener('submit',e=>{e.preventDefault();db.tasks.push({id:id(),date:$('tDate').value,unit:$('tUnit').value,cat:$('tCat').value,title:$('tTitle').value.trim(),memo:$('tMemo').value.trim(),done:false});save();e.target.reset();$('tDate').value=today();renderTasks();say('업무를 저장했습니다.');});
+$('opForm').addEventListener('submit',e=>{e.preventDefault();db.ops.push({id:id(),unit:$('oUnit').value,type:$('oType').value,date:$('oDate').value,reason:$('oReason').value.trim()});save();e.target.reset();$('oDate').value=dt();renderOps();say('가동 이력을 저장했습니다.');});
+$('mForm').addEventListener('submit',e=>{e.preventDefault();db.maint.push({id:id(),date:$('mDate').value,unit:$('mUnit').value,cat:$('mCat').value,equip:$('mEquip').value.trim(),title:$('mTitle').value.trim(),details:$('mDetails').value.trim()});save();e.target.reset();$('mDate').value=today();renderMaint();say('보수내역을 저장했습니다.');});
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.done){const x=db.tasks.find(v=>v.id===b.dataset.done);if(x)x.done=!x.done;save();renderTasks();}
+ for(const [attr,key,render] of [['del-task','tasks',renderTasks],['del-op','ops',renderOps],['del-maint','maint',renderMaint]]){
+  if(b.dataset[attr]){if(confirm('삭제할까요?')){db[key]=db[key].filter(x=>x.id!==b.dataset[attr]);save();render();say('삭제했습니다.');}}
+ }
+});
+$('tFilter').addEventListener('change',renderTasks);$('tFilterDate').addEventListener('change',renderTasks);
+$('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='소각로운영관리_백업_'+today()+'.json';a.click();URL.revokeObjectURL(a.href);say('백업 파일을 저장했습니다.');});
+$('importBtn').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const v=JSON.parse(await f.text());if(!Array.isArray(v.tasks)||!Array.isArray(v.ops)||!Array.isArray(v.maint))throw Error();if(confirm('현재 자료를 백업 파일 내용으로 교체할까요?')){db=v;save();renderAll();say('백업 자료를 불러왔습니다.');}}catch{say('백업 파일 형식이 올바르지 않습니다.');}e.target.value='';});
+function renderAll(){renderTasks();renderOps();renderMaint();}
+renderAll();
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})();
+</script>
+</body></html>
