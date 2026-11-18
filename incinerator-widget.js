@@ -3,7 +3,7 @@ const fm = FileManager.local();
 const path = fm.joinPath(fm.documentsDirectory(), 'incinerator-widget-v1.json');
 const kinds = {work: '업무', operation: '가동', stop: '정지', check: '점검', maintenance: '보수'};
 const colors = {work: '#C4B5FD', operation: '#86EFAC', stop: '#FDA4AF', check: '#FDE68A', maintenance: '#7DD3FC'};
-const incoming = args.queryParameters.snapshot;
+let incoming = args.queryParameters?.snapshot;
 const dateKey = date => {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit'
@@ -24,11 +24,21 @@ function parseSnapshot(raw) {
   }
   return data;
 }
+if (!incoming && config.runsInApp && !config.runsInWidget) {
+  const prompt = new Alert();
+  prompt.title = '소각로 위젯';
+  prompt.message = '일정 앱에서 ‘일정 복사 (수동 연결)’를 누른 뒤 아래 칸에 붙여넣으세요. 기존 일정을 보려면 취소를 누르세요.';
+  prompt.addTextField('복사한 일정 붙여넣기');
+  prompt.addAction('일정 저장');
+  prompt.addCancelAction('취소');
+  if (await prompt.presentAlert() === 0) incoming = prompt.textFieldValue(0).trim();
+}
 let data;
 if (incoming && !config.runsInWidget) {
   try {
-    data = parseSnapshot(incoming);
+    const snapshot = parseSnapshot(incoming);
     fm.writeString(path, incoming);
+    data = snapshot;
   } catch (error) {
     const alert = new Alert();
     alert.title = '위젯 업데이트 실패';
